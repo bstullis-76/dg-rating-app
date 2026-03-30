@@ -21,10 +21,9 @@ if not os.path.exists(HISTORY_FILE):
 st.set_page_config(page_title="DG Rating Tracker", page_icon="🥏")
 st.title("🥏 Friend Group Rating Tracker")
 
-# --- SECTION 1: LOG A NEW ROUND ---
+# --- SECTION 1: LOG A NEW ROUND (ZERO INDENTS) ---
 st.subheader("➕ Log a New Round")
 
-# These inputs are now "Flat" (No indents at the start of the lines)
 name_in = st.text_input("Friend's Name")
 reg_list = sorted([str(r) for r in df_courses["Region"].unique()])
 sel_reg = st.selectbox("Select Region", reg_list)
@@ -32,8 +31,38 @@ c_list = df_courses[df_courses["Region"] == sel_reg]["Course"].tolist()
 sel_c = st.selectbox("Select Course", sorted(c_list))
 log_d = st.date_input("Date", datetime.date.today())
 
-# Get course data
+# Get course data (No indents allowed here)
 c_info = df_courses[df_courses["Course"] == sel_c].iloc[0]
+val_ssa = int(c_info["SSA"])
+score_in = st.number_input("Score", min_value=18, max_value=150, value=val_ssa)
+
+if st.button("Save Round"):
+    if name_in:
+        calc_r = 1000 - ((score_in - c_info["SSA"]) * c_info["PPS"])
+        new_r = pd.DataFrame([[log_d, name_in, sel_c, score_in, int(calc_r)]], 
+                             columns=["Date", "Name", "Course", "Score", "Rating"])
+        new_r.to_csv(HISTORY_FILE, mode='a', header=False, index=False)
+        st.success(f"Saved! {name_in} got a {int(calc_r)}.")
+    else:
+        st.error("Please enter a name first!")
+
+# --- SECTION 2: RATING HISTORY ---
+st.subheader("📈 Performance History")
+hist_df = pd.read_csv(HISTORY_FILE)
+
+if hist_df.empty:
+    st.info("No rounds logged yet.")
+    st.stop()
+
+hist_df['Date'] = pd.to_datetime(hist_df['Date'])
+u_names = sorted(hist_df["Name"].unique())
+friends = st.multiselect("Select Friends:", u_names, default=u_names)
+filt_h = hist_df[hist_df["Name"].isin(friends)]
+
+if not filt_h.empty:
+    st.line_chart(filt_h, x="Date", y="Rating", color="Name")
+    with st.expander("View Raw Scorecard"):
+        st.dataframe(filt_h.sort_values(by="Date", ascending=False), use_container_width=True)
 val_ssa = int(c_info["SSA"])
 score_in = st.number_input("Score", min_value=18, max_value=150, value=val_ssa)
 
