@@ -70,4 +70,3 @@ if not history_df.empty:
             st.dataframe(filtered_history.sort_values(by="Date", ascending=False), use_container_width=True)
 else:
     st.info("No rounds logged yet. Add a score above!")
-Fixed Region Filtering
