@@ -38,7 +38,9 @@ with st.expander("➕ Log a New Round"):
             val_ssa = int(c_info["SSA"])
             score_in = st.number_input("Score", min_value=18, max_value=150, value=val_ssa)
             
-        if st.form_submit_button("Save Round") and name_in:
+        submitted = st.form_submit_button("Save Round")
+        
+        if submitted and name_in:
             calc_r = 1000 - ((score_in - c_info["SSA"]) * c_info["PPS"])
             new_r = pd.DataFrame([[log_d, name_in, sel_c, score_in, int(calc_r)]], 
                                  columns=["Date", "Name", "Course", "Score", "Rating"])
@@ -51,22 +53,17 @@ hist_df = pd.read_csv(HISTORY_FILE)
 
 if hist_df.empty:
     st.info("No rounds logged yet.")
-else:
-    hist_df['Date'] = pd.to_datetime(hist_df['Date'])
-    u_names = hist_df["Name"].unique()
-    friends = st.multiselect("Select Friends:", u_names, default=u_names)
-    filt_h = hist_df[hist_df["Name"].isin(friends)]
-    if not filt_h.empty:
-        st.line_chart(filt_h, x="Date", y="Rating", color="Name")
-        with st.expander("View Raw Scorecard"):
-            st.dataframe(filt_h.sort_values(by="Date", ascending=False), use_container_width=True)
-        with col2:
-            log_date = st.date_input("Date", datetime.date.today())
-            # Get course data
-            c_info = df_courses[df_courses["Course"] == sel_course].iloc[0]
-            in_score = st.number_input("Score", min_value=18, max_value=150, value=int(c_info["SSA"]))
-            
-        submitted = st.form_submit_button("Save Round")
+    st.stop()
+
+hist_df['Date'] = pd.to_datetime(hist_df['Date'])
+u_names = hist_df["Name"].unique()
+friends = st.multiselect("Select Friends:", u_names, default=u_names)
+filt_h = hist_df[hist_df["Name"].isin(friends)]
+
+if not filt_h.empty:
+    st.line_chart(filt_h, x="Date", y="Rating", color="Name")
+    with st.expander("View Raw Scorecard"):
+        st.dataframe(filt_h.sort_values(by="Date", ascending=False), use_container_width=True)
         
         if submitted and name_input:
             calc_rating = 1000 - ((in_score - c_info["SSA"]) * c_info["PPS"])
