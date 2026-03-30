@@ -28,12 +28,38 @@ with st.expander("➕ Log a New Round"):
         with col1:
             name = st.text_input("Friend's Name")
             regions = sorted([str(r) for r in df_courses["Region"].unique()])
-            region_select = st.selectbox("Select Region", regions)
-            filtered_courses = df_courses[df_courses["Region"] == region_select]["Course"].tolist()
-            course_name = st.selectbox("Select Course", sorted(filtered_courses))
-
+            region_sel = st.selectbox("Select Region", regions)
+            f_courses = df_courses[df_courses["Region"] == region_sel]["Course"].tolist()
+            course_sel = st.selectbox("Select Course", sorted(f_courses))
         with col2:
             date = st.date_input("Date", datetime.date.today())
+            c_row = df_courses[df_courses["Course"] == course_sel].iloc[0]
+            score = st.number_input("Score", min_value=18, max_value=150, value=int(c_row["SSA"]))
+            
+        if st.form_submit_button("Save Round") and name:
+            ssa, pps = c_row["SSA"], c_row["PPS"]
+            rating = 1000 - ((score - ssa) * pps)
+            new_r = pd.DataFrame([[date, name, course_sel, score, int(rating)]], 
+                                 columns=["Date", "Name", "Course", "Score", "Rating"])
+            new_r.to_csv(HISTORY_FILE, mode='a', header=False, index=False)
+            st.success(f"Saved! {name} got a {int(rating)}.")
+
+# --- SECTION 2: RATING HISTORY ---
+st.subheader("📈 Performance History")
+hist_df = pd.read_csv(HISTORY_FILE)
+
+if hist_df.empty:
+    st.info("No rounds logged yet.")
+else:
+    hist_df['Date'] = pd.to_datetime(hist_df['Date'])
+    u_names = hist_df["Name"].unique()
+    friends = st.multiselect("Select Friends:", u_names, default=u_names)
+    filt_h = hist_df[hist_df["Name"].isin(friends)]
+    
+    if not filt_h.empty:
+        st.line_chart(filt_h, x="Date", y="Rating", color="Name")
+        with st.expander("View Raw Scorecard"):
+            st.dataframe(filt_h.sort_values(by="Date", ascending=False), use_container_width=True)
             # Get data for selected course
             course_row = df_courses[df_courses["Course"] == course_name].iloc[0]
             score = st.number_input("Score", min_value=18, max_value=150, value=int(course_row["SSA"]))
